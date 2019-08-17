@@ -10,12 +10,14 @@ LDFLAGS := -ldflags '-X $(IMPORT).VERSION=$(VERSION) -X $(IMPORT).GITCOMMIT=$(GI
 
 .PHONY: build test
 
-build:
+default: $(NAME)
+$(NAME): vendor
 	@echo "Building..."
 	@echo "------------------------------------------------------------------------"
 	go build ${LDFLAGS} -o bin/$(NAME) $(ROOT)/cmd/$(NAME)
 
-all: clean linux
+vendor:
+	dep ensure -v
 
 test:
 	@echo "Testing..."

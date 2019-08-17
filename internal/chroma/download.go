@@ -1,13 +1,16 @@
 package chroma
 
 import (
-	"fmt"
+	"path"
+
+	"github.com/phR0ze/n/pkg/sys"
+	"github.com/pkg/errors"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
-func (chroma *CHROMA) newDownloadCmd() *cobra.Command {
+func (chroma *Chroma) newDownloadCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "download",
 		Short:   "Download patches or extensions for chromium",
@@ -38,7 +41,9 @@ func (chroma *CHROMA) newDownloadCmd() *cobra.Command {
 				Args:    cobra.MinimumNArgs(1),
 				Run: func(cmd *cobra.Command, distros []string) {
 					chroma.configure()
-					chroma.downloadPatches(distros)
+					if err := chroma.downloadPatches(distros); err != nil {
+						chroma.logFatal(err)
+					}
 				},
 			}
 			return cmd
@@ -48,13 +53,21 @@ func (chroma *CHROMA) newDownloadCmd() *cobra.Command {
 }
 
 // Download the given extension from the Google Market
-func (chroma *CHROMA) downloadExtension(extName string) {
+func (chroma *Chroma) downloadExtension(extName string) {
 	log.Fatal(extName)
 }
 
 // Download patches for the given distributions
-func (chroma *CHROMA) downloadPatches(distros []string) {
+func (chroma *Chroma) downloadPatches(distros []string) (err error) {
 	for _, distro := range distros {
-		fmt.Println(distro)
+		patchSetDir := path.Join(chroma.patchesDir, distro)
+		if !sys.Exists(patchSetDir) {
+			err = errors.Errorf("patchset destination directory %s doesn't exist", patchSetDir)
+			return
+		}
+
+		log.Infof("Downloading patchset %s => %s", distro, patchSetDir)
+		
 	}
+	return
 }

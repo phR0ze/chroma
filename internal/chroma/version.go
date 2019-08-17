@@ -15,7 +15,7 @@ var (
 	GITCOMMIT string
 )
 
-func (chroma *CHROMA) newVersionCmd() *cobra.Command {
+func (chroma *Chroma) newVersionCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "version",
 		Short:   "Show version information",
@@ -28,7 +28,7 @@ func (chroma *CHROMA) newVersionCmd() *cobra.Command {
 }
 
 // Get the chroma version
-func (chroma *CHROMA) listVersions(out io.Writer) {
+func (chroma *Chroma) listVersions(out io.Writer) {
 	fmt.Fprintf(out, `Chroma
 -------------------------------------------------------------
 Version:           %s
