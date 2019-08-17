@@ -2,9 +2,7 @@ package chroma
 
 import (
 	"fmt"
-	"os"
 	"path"
-	"strings"
 
 	"github.com/phR0ze/n"
 	"github.com/phR0ze/n/pkg/net"
@@ -93,59 +91,49 @@ func (chroma *Chroma) downloadPatches(distros []string, opts *downloadOpts) (err
 		// -----------------------------------------------------------------------------------------
 		switch distro {
 		case "debian":
-
-			// Read in the patch order file, downloading if needed
-			var orderLines *n.StringSlice
-			orderFile := path.Join(patchSetDir, path.Base(gPatchSets[distro]))
-			if !sys.Exists(orderFile) {
-				log.Infof("Downloading patch order file %s", gPatchSets[distro])
-				if _, err = agent.Download(gPatchSets[distro], orderFile); err != nil {
-					return
-				}
-
-				// Read in the order file
-				var data []string
-				if data, err = sys.ReadLines(orderFile); err != nil {
-					return
-				}
-				orderLines = n.S(data)
-
-				// Trim out any empty lines
-				orderLines.DropW(func(x n.O) bool {
-					return n.ExB(x.(string) == "")
-				})
+			var order *n.StringSlice
+			if order, err = readOrderFile(distro, patchSetDir); err != nil {
+				return
 			}
 
 			// Download each of the patches numbering and naming them according to the order file
-			order := 0
-			for _, plink := range plinks {
-				if strings.Contains(plink, patchSet["tree"]) || strings.Contains(plink, patchSet["blob"]) {
-					uri := net.JoinURL(patchSet["base"], plink)
-					if !n.S(path.Base(uri)).Any("debian", "patches", "..") {
-
-						log.Infof("Downloading patches from directory %s", plink)
-						if !strings.HasSuffix(uri, patchSet["order"]) {
-							var clinks []string
-							if clinks, err = agent.GetLinks(uri); err != nil {
-								return
-							}
-							patchPath := net.JoinURL(patchSet["blob"], path.Base(uri))
-							for _, clink := range clinks {
-								if strings.HasPrefix(clink, patchPath) {
-									i := orderLines.Index(sys.SlicePath(clink, -2, -1))
-									dstName := fmt.Sprintf("%02d-%s", i)
-									fmt.Println(suffix)
-									fmt.Println(i)
-									os.Exit(1)
-								}
-							}
-						} else {
-
-						}
-					}
+			for i, entry := range order.SG() {
+				uri := net.JoinURL(net.DirURL(gPatchSets[distro]), entry)
+				dstName := fmt.Sprintf("%02d-%s", i, path.Base(entry))
+				dstPath := path.Join(patchSetDir, dstName)
+				log.Infof("Downloading patch %s => %s", sys.SlicePath(uri, -3, -1), sys.SlicePath(dstPath, -2, -1))
+				if _, err = agent.Download(uri, dstPath); err != nil {
+					return
 				}
 			}
 		}
 	}
+	return
+}
+
+// Read the order files from disk, downloading if it doesn't exist
+func readOrderFile(distro, patchSetDir string) (order *n.StringSlice, err error) {
+
+	// Read in the patch order file, downloading if needed
+	orderFile := path.Join(patchSetDir, path.Base(gPatchSets[distro]))
+	if !sys.Exists(orderFile) {
+		log.Infof("Downloading patch order file %s", gPatchSets[distro])
+		if _, err = mech.Download(gPatchSets[distro], orderFile); err != nil {
+			return
+		}
+	}
+
+	// Read in the order file
+	var data []string
+	if data, err = sys.ReadLines(orderFile); err != nil {
+		return
+	}
+	order = n.S(data)
+
+	// Trim out any empty lines
+	order.DropW(func(x n.O) bool {
+		return n.ExB(x.(string) == "")
+	})
+
 	return
 }

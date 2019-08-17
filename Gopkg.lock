@@ -58,7 +58,7 @@
   version = "v1.5.0"
 
 [[projects]]
-  digest = "1:1883812a95691cc9d3a9020076980e5aef94b533a9efbff40c24e3d91cf21876"
+  digest = "1:1ba719f3fcc2d182e66e25c1e74323842a4aad8ea21b544f027f125ea5ef357c"
   name = "github.com/phR0ze/n"
   packages = [
     ".",
@@ -69,8 +69,8 @@
     "pkg/sys",
   ]
   pruneopts = "NUT"
-  revision = "1185f40df4c463f7531728ed1bf1b98fed0a0dc5"
-  version = "v2.0.46"
+  revision = "083130c52f0ac1340e96c40d74efb14861b50330"
+  version = "v2.0.47"
 
 [[projects]]
   digest = "1:14715f705ff5dfe0ffd6571d7d201dd8e921030f8070321a79380d8ca4ec1a24"
