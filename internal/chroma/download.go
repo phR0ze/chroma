@@ -69,6 +69,7 @@ func (chroma *Chroma) downloadExtension(extName string) {
 func (chroma *Chroma) downloadPatches(distros []string, opts *downloadOpts) (err error) {
 	for _, distro := range distros {
 		patchSetDir := path.Join(chroma.patchesDir, distro)
+		notUsedDir := path.Join(patchSetDir, "not-used")
 
 		// Ensure destination directory is clean and ready
 		// -----------------------------------------------------------------------------------------
@@ -78,7 +79,7 @@ func (chroma *Chroma) downloadPatches(distros []string, opts *downloadOpts) (err
 				sys.RemoveAll(patchSetDir)
 			}
 		}
-		if _, err = sys.MkdirP(patchSetDir); err != nil {
+		if _, err = sys.MkdirP(notUsedDir); err != nil {
 			return
 		}
 
@@ -100,12 +101,46 @@ func (chroma *Chroma) downloadPatches(distros []string, opts *downloadOpts) (err
 			for i, entry := range order.SG() {
 				uri := net.JoinURL(net.DirURL(gPatchSets[distro]), entry)
 				dstName := fmt.Sprintf("%02d-%s", i, path.Base(entry))
-				dstPath := path.Join(patchSetDir, dstName)
-				log.Infof("Downloading patch %s => %s", sys.SlicePath(uri, -3, -1), sys.SlicePath(dstPath, -2, -1))
-				if _, err = agent.Download(uri, dstPath); err != nil {
+				if err = downloadPatch(agent, uri, distro, patchSetDir, dstName); err != nil {
 					return
 				}
 			}
+		}
+	}
+	return
+}
+
+// Download the given patch set or relocate it if needed
+func downloadPatch(agent *mech.Mech, uri, distro, patchSetDir, dstName string) (err error) {
+
+	// Set path name to used or not used
+	dstUsedPath := path.Join(patchSetDir, dstName)
+	dstNotUsedPath := path.Join(patchSetDir, "not-used", dstName)
+	used := gPatches[distro][dstName]
+	switch {
+
+	// Move not used file from used to not used directory
+	case !used && sys.Exists(dstUsedPath):
+		log.Infof("Disabling not used patch %s => %s", dstName, sys.SlicePath(dstUsedPath, -3, -1))
+		if err = sys.Move(dstUsedPath, dstNotUsedPath); err != nil {
+			return
+		}
+
+	// Move used file from not used to used directory
+	case used && sys.Exists(dstNotUsedPath):
+		log.Infof("Enabling used patch %s => %s", dstName, sys.SlicePath(dstUsedPath, -3, -1))
+		if err = sys.Move(dstNotUsedPath, dstUsedPath); err != nil {
+			return
+		}
+
+	case !sys.Exists(dstUsedPath) && !sys.Exists(dstNotUsedPath):
+		dstPath := dstUsedPath
+		if !used {
+			dstPath = dstNotUsedPath
+		}
+		log.Infof("Downloading patch %s => %s", sys.SlicePath(uri, -3, -1), sys.SlicePath(dstPath, -2, -1))
+		if _, err = agent.Download(uri, dstPath); err != nil {
+			return
 		}
 	}
 	return

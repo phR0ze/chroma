@@ -46,82 +46,148 @@ var (
 	// Call out patches used and not used and notes
 	// Order is significant
 	// --------------------------------------------------------------------------
-	gUsedPatches = map[string][]string{
-		gDistros.arch: {
-			"breakpad-use-ucontext_t.patch",   // Glibc 2.26 does not expose struct ucontext any longer
-			"chromium-gn-bootstrap-r17.patch", //
-		},
+	gPatches = map[string]map[string]bool{
+		// gDistros.arch: {
+		// 	"breakpad-use-ucontext_t.patch",   // Glibc 2.26 does not expose struct ucontext any longer
+		// 	"chromium-gn-bootstrap-r17.patch", //
+		// },
 
 		// Credit to Michael Gilber
+		// 	"disable/third-party-cookies.patch", // Already covered in inox/0006-modify-default-prefs'
 		gDistros.debian: {
-			"manpage.patch", // Adds simple doc with link to documentation website
-
-			"gn/parallel.patch",   // Respect specified number of parllel jobs when bootstrapping
-			"gn/narrowing.patch",  // Silence narrowing warnings when bootstrapping gn
-			"gn/buildflags.patch", // Support build flags passed in the --args to gn
-
-			"disable/promo.patch",                // Disable ad promo system by default
-			"disable/fuzzers.patch",              // Disable fuzzers as they aren't built anyway and only used for testing
-			"disable/google-api-warning.patch",   // Disables Google's API key warning when they are removed from the PKGBUILD
-			"disable/external-components.patch",  // Disable loading: Enhanced bookmarks, HotWord, ZipUnpacker, GoogleNow
-			"disable/device-notifications.patch", // Disable device discovery notifications
-
-			"fixes/mojo.patch",                  // Fix mojo layout test build error
-			"fixes/chromecast.patch",            // Disable chromecast unless flag GOOGLE_CHROME_BUILD set
-			"fixes/ps-print.patch",              // Add postscript(ps) printing capabiliy
-			"fixes/gpu-timeout.patch",           // Increase GPU timeout from 10sec to 20sec
-			"fixes/widevine-revision.patch",     // Set widevine version as undefined
-			"fixes/connection-message.patch",    // Update connection message to suggest updating your proxy if you can't get connected.
-			"fixes/chromedriver-revision.patch", // Set as undefined, Chromedriver allows for automated testing of chromium
+			"00-manpage.patch":                  true,  // Adds simple doc with link to documentation website
+			"01-sandbox.patch":                  false, // Debian specific error message to install chromium-sandbox
+			"02-master-preferences.patch":       true,  // Look for master preferences in /etc/chromium/master_preferences
+			"03-libcxx.patch":                   true,  // Avoid chromium's embedded C++ library when bootstrapping
+			"04-parallel.patch":                 true,  // Respect specified number of parllel jobs when bootstrapping
+			"05-gcc_skcms_ice.patch":            true,  // GCC ICE with optimized version
+			"06-pffffft-buildfix.patch":         true,  // ??
+			"07-skia-aarch64-buildfix.patch":    true,  // ??
+			"08-wrong-namespace.patch":          true,  // gcc: various methods and classes are using the wrong namespace
+			"09-virtual-destructor.patch":       true,  // gcc: a virtual destructor is called without this patch
+			"10-explicit-specialization.patch":  true,  // gcc: fix for gcc explicit specialiazation namespace issue
+			"11-macro.patch":                    true,  // gcc6: can be ignored as arch linux is using gcc 9
+			"12-sizet.patch":                    true,  // gcc6: can be ignored as arch linux is using gcc 9
+			"13-atomic.patch":                   true,  // gcc6: can be ignored as arch linux is using gcc 9
+			"14-constexpr.patch":                true,  // gcc6: can be ignored as arch linux is using gcc 9
+			"15-wtf-hashmap.patch":              true,  // gcc6: can be ignored as arch linux is using gcc 9
+			"16-lambda-this.patch":              true,  // gcc6: can be ignored as arch linux is using gcc 9
+			"17-map-insertion.patch":            true,  // gcc6: can be ignored as arch linux is using gcc 9
+			"18-not-constexpr.patch":            true,  // gcc6: can be ignored as arch linux is using gcc 9
+			"19-move-required.patch":            true,  // gcc6: can be ignored as arch linux is using gcc 9
+			"20-use-after-move.patch":           true,  // gcc6: can be ignored as arch linux is using gcc 9
+			"21-ambiguous-overloads.patch":      true,  // gcc6: can be ignored as arch linux is using gcc 9
+			"22-ambiguous-initializer.patch":    true,  // gcc6: can be ignored as arch linux is using gcc 9
+			"23-nullptr-copy-construct.patch":   true,  // gcc6: can be ignored as arch linux is using gcc 9
+			"24-noexcept-redeclaration.patch":   true,  // gcc6: can be ignored as arch linux is using gcc 9
+			"25-trivially-constructible.patch":  true,  // gcc6: can be ignored as arch linux is using gcc 9
+			"26-designated-initializers.patch":  true,  // gcc6: can be ignored as arch linux is using gcc 9
+			"27-specialization-namespace.patch": true,  // gcc6: can be ignored as arch linux is using gcc 9
+			"28-mojo.patch":                     true,  // Fixes: fix mojo layout test build error
+			"29-public.patch":                   true,  // Fixes: method needs to be public
+			"30-ps-print.patch":                 true,  // Fixes: add postscript(ps) printing capabiliy
+			"31-as-needed.patch":                true,  // Fixes: some libraries fail to link when '--as-needed' is set
+			"32-inspector.patch":                true,  // Fixes: use inspector_protocol from top level third_party dir
+			"33-gpu-timeout.patch":              true,  // Fixes: increase GPU timeout from 10sec to 20sec
+			"34-empty-array.patch":              true,  // Fixes: arraysize macro fails for zero length array and add one char
+			"35-safebrowsing.patch":             true,  // Fixes: fix signedness error when built with gcc affects safe browsing
+			"36-sequence-point.patch":           true,  // Fixes: fix undefined order in which expressions are evaluated
+			"37-jumbo-namespace.patch":          true,  // Fixes: jumbo build has troubel with these namespaces
+			"38-template-export.patch":          true,  // Fixes: implementation of template function must be in header to be exported
+			"39-widevine-revision.patch":        true,  // Fixes: set widevine version as undefined
+			"40-widevine-locations.patch":       false, // Fixes: arch linux works fine don't need to try alternative location for widevine
+			"41-widevine-buildflag.patch":       true,  // Fixes: enable widevine support
+			"42-connection-message.patch":       false, // Fixes: hardly seems importan to 'update suggest updating your proxy when network is unreachable'
+			"43-unrar.patch":                    true,  // Disable: disable support for browsing rar files
+			"44-signin.patch":                   true,  // Disable: disable browser sign-in
+			"45-android.patch":                  true,  // Disable: disable dependency on chrome/android
+			"46-fuzzers.patch":                  true,  // Disable: fuzzers as they aren't built anyway and only used for testing
+			"47-tracing.patch":                  true,  // Disable: disable tracing which depends on too many sourceless javascript files
+			"48-openh264.patch":                 false, // Disable: disable support for openh264
+			"49-chromeos.patch":                 true,  // Disable: ??
+			"50-perfetto.patch":                 true,  // Disable: disable dependencies on third_party perfetto
+			"51-installer.patch":                true,  // Disable: avoid building the chromium installer
+			"52-font-tests.patch":               true,  // Disable: disable building font tests
+			"53-swiftshader.patch":              true,  // Disable: avoid building the swiftshader library
+			"54-welcome-page.patch":             true,  // Disable: do not override the welcome page setting in preferences
+			"55-google-api-warning.patch":       true,  // Disable: disable Google's API key warning when they are removed from the PKGBUILD
+			"56-third-party-cookies.patch":      true,  // Disable: disable third-party cookies in preferences
+			"57-device-notifications.patch":     true,  // Disable: disable device discovery notifications in preferences
+			"58-int32.patch":                    true,  // Warning: fit int32_t enum values into 32 bits
+			"59-friend.patch":                   true,  // Warning: unfriend classses that friend themselves
+			"60-printf.patch":                   true,  // Warning: cast enums to int for use as printf arguments
+			"61-attribute.patch":                true,  // Warning: fix gcc optimization but attribute doesn't match warnings
+			"62-multichar.patch":                true,  // Warning: crashpad relies on multicharacter integer assignments
+			"63-deprecated.patch":               true,  // Warning: ignore deprecated bison directive warnings
+			"64-bool-compare.patch":             true,  // Warning: fix gcc bool-compare warnings
+			"65-enum-compare.patch":             true,  // Warning: fix gcc warnings about enum comparisions
+			"66-sign-compare.patch":             true,  // Warning: fix gcc sign-compare warnings
+			"67-initialization.patch":           true,  // Warning: source could be uninitialized
+			"68-unused-typedefs.patch":          true,  // Warning: fix type in unused local typedefs
+			"69-unused-functions.patch":         true,  // Warning: remove functions that are unused
+			"70-null-destination.patch":         true,  // Warning: use stack_buf before possible branching
+			"71-int-in-bool-context.patch":      true,  // Warning: fix int in bool context gcc warnings
+			"72-vpx.patch":                      false, // System: arch linux supports VP9 so we don't need to disable it in libvpx
+			"73-icu.patch":                      false, // System: arch linux PKGBUILD has a system lib call out for this already
+			"74-gtk2.patch":                     false, // System: arch linux packages work fine when building against GTK3
+			"75-jpeg.patch":                     false, // System: arch linux PKGBUILD has a system lib call out for this already
+			"76-lcms.patch":                     true,  // System: use system lcms for pdfium
+			"77-nspr.patch":                     true,  // System: build using the system nspr library
+			"78-zlib.patch":                     false, // System: arch PKGBUILD has a system lib call out for this already
+			"79-event.patch":                    true,  // System: build using the system libevent library
+			"80-ffmpeg.patch":                   false, // System: arch linux PKGBUILD has a system lib call out for this already
+			"81-jsoncpp.patch":                  true,  // System: use system jsoncpp
+			"82-openjpeg.patch":                 true,  // System: build system using openjpeg
+			"83-convertutf.patch":               true,  // System: use ICU for UTF8 conversions (eleminates ConvertUTF embedded code copy)
+			"84-icu63.patch":                    false, // System: arch linux has newer icu don't need to maintain compt with 63
 		},
 
-		gDistros.cyber: {
-			"00-master-preferences.patch",         // Configure the master preferences to be in /etc/chromium/master_preferences
-			"01-disable-default-extensions.patch", // Apply on top of debian patches, disables cloud print and feedback
-		},
+		// gDistros.cyber: {
+		// 	"01-disable-default-extensions.patch", // Apply on top of debian patches, disables cloud print and feedback
+		// },
 
-		// Credit to Michael Egger -> patches/inox/LICENSE
-		// https://github.com/gcarq/inox-patchset
-		//
-		// Default Settings
-		// ------------------------------------------------------------------------
-		// DefaultCookiesSettings                            CONTENT_SETTING_DEFAULT
-		// EnableHyperLinkAuditing 	                        false
-		// CloudPrintSubmitEnabled 	                        false
-		// NetworkPredictionEnabled 	                        false
-		// BackgroundModeEnabled 	                          false
-		// BlockThirdPartyCookies 	                          true
-		// AlternateErrorPagesEnabled 	                      false
-		// SearchSuggestEnabled 	                            false
-		// AutofillEnabled 	                                false
-		// Send feedback to Google if preferences are reset 	false
-		// BuiltInDnsClientEnabled                         	false
-		// SignInPromoUserSkipped 	                          true
-		// SignInPromoShowOnFirstRunAllowed 	                false
-		// ShowAppsShortcutInBookmarkBar 	                  false
-		// ShowBookmarkBar 	                                true
-		// PromptForDownload 	                              true
-		// SafeBrowsingEnabled 	                            false
-		// EnableTranslate 	                                false
-		// LocalDiscoveryNotificationsEnabled 	              false
-		gDistros.inox: {
-			"0001-fix-building-without-safebrowsing.patch", // Required when the PGKBUILD has safebrowing disabled
-			"0003-disable-autofill-download-manager.patch", // Disables HTML AutoFill data transmission to Google
-			"0006-modify-default-prefs.patch",              // Set default settings as described in header
-			"0007-disable-web-resource-service.patch",      //
-			"0008-restore-classic-ntp.patch",               // The new NTP (New Tag Page) pulls from Google including tracking identifier
-			"0009-disable-google-ipv6-probes.patch",        // Change IPv6 DNS probes to Google over to k.root-servers.net
-			"0010-disable-gcm-status-check.patch",          // Disable Google Cloud-Messaging status probes, GCM allows direct msg to device
-			"0014-disable-translation-lang-fetch.patch",    // Disable language fetching from Google when settings are opened the first time
-			"0015-disable-update-pings.patch",              // Disable update pings to Google
-			"0016-chromium-sandbox-pie.patch",              // Hardening sandbox with Position Independent code, originally from openSUSE
-			"0017-disable-new-avatar-menu.patch",           // Disable Google Avatar signin menu
-			"0018-disable-first-run-behaviour.patch",       // Modifies first run to prevent data leakage
-			"0019-disable-battery-status-service.patch",    // Disable battry status service as it can be used for tracking
-			"0021-disable-rlz.patch",                       // Disable RLZ
-			"9000-disable-metrics.patch",                   // Disable metrics
-			"9001-disable-profiler.patch",                  // Disable profiler
-		},
+		// // Credit to Michael Egger -> patches/inox/LICENSE
+		// // https://github.com/gcarq/inox-patchset
+		// //
+		// // Default Settings
+		// // ------------------------------------------------------------------------
+		// // DefaultCookiesSettings                            CONTENT_SETTING_DEFAULT
+		// // EnableHyperLinkAuditing 	                        false
+		// // CloudPrintSubmitEnabled 	                        false
+		// // NetworkPredictionEnabled 	                        false
+		// // BackgroundModeEnabled 	                          false
+		// // BlockThirdPartyCookies 	                          true
+		// // AlternateErrorPagesEnabled 	                      false
+		// // SearchSuggestEnabled 	                            false
+		// // AutofillEnabled 	                                false
+		// // Send feedback to Google if preferences are reset 	false
+		// // BuiltInDnsClientEnabled                         	false
+		// // SignInPromoUserSkipped 	                          true
+		// // SignInPromoShowOnFirstRunAllowed 	                false
+		// // ShowAppsShortcutInBookmarkBar 	                  false
+		// // ShowBookmarkBar 	                                true
+		// // PromptForDownload 	                              true
+		// // SafeBrowsingEnabled 	                            false
+		// // EnableTranslate 	                                false
+		// // LocalDiscoveryNotificationsEnabled 	              false
+		// gDistros.inox: {
+		// 	"0001-fix-building-without-safebrowsing.patch", // Required when the PGKBUILD has safebrowing disabled
+		// 	"0003-disable-autofill-download-manager.patch", // Disables HTML AutoFill data transmission to Google
+		// 	"0006-modify-default-prefs.patch",              // Set default settings as described in header
+		// 	"0007-disable-web-resource-service.patch",      //
+		// 	"0008-restore-classic-ntp.patch",               // The new NTP (New Tag Page) pulls from Google including tracking identifier
+		// 	"0009-disable-google-ipv6-probes.patch",        // Change IPv6 DNS probes to Google over to k.root-servers.net
+		// 	"0010-disable-gcm-status-check.patch",          // Disable Google Cloud-Messaging status probes, GCM allows direct msg to device
+		// 	"0014-disable-translation-lang-fetch.patch",    // Disable language fetching from Google when settings are opened the first time
+		// 	"0015-disable-update-pings.patch",              // Disable update pings to Google
+		// 	"0016-chromium-sandbox-pie.patch",              // Hardening sandbox with Position Independent code, originally from openSUSE
+		// 	"0017-disable-new-avatar-menu.patch",           // Disable Google Avatar signin menu
+		// 	"0018-disable-first-run-behaviour.patch",       // Modifies first run to prevent data leakage
+		// 	"0019-disable-battery-status-service.patch",    // Disable battry status service as it can be used for tracking
+		// 	"0021-disable-rlz.patch",                       // Disable RLZ
+		// 	"9000-disable-metrics.patch",                   // Disable metrics
+		// 	"9001-disable-profiler.patch",                  // Disable profiler
+		// },
 	}
 
 	// Not used patches and a description as to why not
@@ -130,18 +196,7 @@ var (
 		gDistros.arch: {
 			"chromium-widevine.patch", // Using debian as this one uses a variable
 		},
-		gDistros.debian: {
-			"master-preferences.patch",          // Use custom cyber patch instead
-			"disable/third-party-cookies.patch", // Already covered in inox/0006-modify-default-prefs'
-			"gn/bootstrap.patch",                // Fix errors in gn's bootstrapping script, using arch bootstrap instead
-			"fixes/crc32.patch",                 // Fix inverted check, using arch crc32c-string-view-check.patch instead
-			"system/nspr.patch",                 // Build using the system nspr library
-			"system/icu.patch",                  // Backwards compatibility for older versions of icu
-			"system/vpx.patch",                  // Remove VP9 support because debian libvpx doesn"t support VP9 yet
-			"system/gtk2.patch",                 //
-			"system/lcms2.patch",                //
-			"system/event.patch",                // Build using the system libevent library
-		},
+
 		gDistros.inox: {
 			// Disables Hotword, Google Now/Feedback/Webstore/Hangout, Cloud Print, Speech synthesis
 			// I like keeping the Webstore and Hangout features so will roll my own patch in cyberlinux

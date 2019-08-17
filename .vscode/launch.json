@@ -10,7 +10,7 @@
             "cwd": "${workspaceFolder}",
             "env": {},
             "args": [
-                "ver"
+                "down", "patches", "debian", "--pkgbuild", "~/Projects/cyberlinux/aur/chromium/PKGBUILD"
             ]
         }
     ]
