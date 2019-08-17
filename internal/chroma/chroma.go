@@ -35,10 +35,10 @@ var (
 		"videodownload-helper": "lmjnegcaeklhafolokijcfjliaokphfk", // Video download helper for Chromium
 	}
 
-	// Supported patch sets
+	// Order files for supported patch sets
 	gPatchSets = map[string]string{
 		"arch":    "https://git.archlinux.org/svntogit/packages.git/tree/trunk?h=packages/chromium",
-		"debian":  "https://salsa.debian.org/chromium-team/chromium/tree/master/debian/patches",
+		"debian":  "https://salsa.debian.org/chromium-team/chromium/raw/master/debian/patches/series",
 		"inox":    "https://github.com/gcarq/inox-patchset",
 		"iridium": "https://git.iridiumbrowser.de/cgit.cgi/iridium-browser/commit/?h=patchview",
 	}
@@ -179,7 +179,7 @@ type Chroma struct {
 	pkgbuild      string // path to the PKGBUILD
 	patchesDir    string // path to the patches dir in the chromium package
 	extensionsDir string // path to the src/exentions dir in the chromium package
-	version       string // target version of chrome pulled from the PKGBUILD
+	chromiumVer   string // target version of chrome pulled from the PKGBUILD
 }
 
 // New initializes the CLI with the given options
@@ -276,15 +276,40 @@ func (chroma *Chroma) configure() (err error) {
 
 	// Parse out the chromium version from the PKGBUILD
 	exp := `(?m)^pkgver=(.*)$`
-	if chroma.version, err = sys.ExtractString(chroma.pkgbuild, exp); err != nil || chroma.version == "" {
+	if chroma.chromiumVer, err = sys.ExtractString(chroma.pkgbuild, exp); err != nil || chroma.chromiumVer == "" {
 		err = errors.Errorf("failed to extract the chromium version from the PKGBUILD")
+		chroma.logFatal(err)
+	}
+	if chroma.chromiumVer, err = sys.ExtractString(chroma.pkgbuild, exp); err != nil || chroma.chromiumVer == "" {
+		err = errors.Errorf("failed to extract the chromium version from the VERSION file")
 		chroma.logFatal(err)
 	}
 
 	// Boiler plate for all commands
 	// ---------------------------------------------------------------------------------------------
-	chroma.printf("Chromium Ver:    %s\n", chroma.version)
+	chroma.printf("Chromium Ver:    %s\n", chroma.chromiumVer)
 	chroma.printf("PKBUILD Path:    %s\n", chroma.pkgbuild)
 	chroma.println()
+	return
+}
+
+// validate the chromium version before we continue
+func (chroma *Chroma) validateChromiumVersion() (err error) {
+	chromium := ""
+	exp := `(?m)^pkgver=(.*)$`
+	if chroma.chromiumVer, err = sys.ExtractString(chroma.pkgbuild, exp); err != nil || chroma.chromiumVer == "" {
+		err = errors.Errorf("failed to extract the chromium version from the PKGBUILD")
+		chroma.logFatal(err)
+	}
+	if chromium, err = sys.ExtractString(chroma.pkgbuild, exp); err != nil || chroma.chromiumVer == "" {
+		err = errors.Errorf("failed to extract the chromium version from the VERSION file")
+		chroma.logFatal(err)
+	}
+
+	// Validate the versions are the same
+	if chroma.chromiumVer != chromium {
+		err = errors.Errorf("target chromium version in VERSION file is not the same as the PKGBUILD version")
+		chroma.logFatal(err)
+	}
 	return
 }

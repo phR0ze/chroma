@@ -2,6 +2,14 @@
 
 
 [[projects]]
+  digest = "1:fc86904a62ac4bfff8cfbe94f42231ce3d8cea8fe2506d5293eaef468f8eaecf"
+  name = "github.com/andybalholm/cascadia"
+  packages = ["."]
+  pruneopts = "NUT"
+  revision = "901648c87902174f774fac311d7f176f8647bdaa"
+  version = "v1.0.0"
+
+[[projects]]
   digest = "1:81466b4218bf6adddac2572a30ac733a9255919bc2f470b4827a317bd4ee1756"
   name = "github.com/ghodss/yaml"
   packages = ["."]
@@ -42,16 +50,27 @@
   version = "v1.3.0"
 
 [[projects]]
-  digest = "1:428c95693327e0b7510475b781d0157586dd59a9928480c5e338b18f947e1f2b"
+  digest = "1:d043e5ae59276188d876090c261c311e146792c0908e08e67e766b1020a72d00"
+  name = "github.com/phR0ze/goquery"
+  packages = ["."]
+  pruneopts = "NUT"
+  revision = "f2d639c7762161d730b0ac7ee2e0cc37da409393"
+  version = "v1.5.0"
+
+[[projects]]
+  digest = "1:1883812a95691cc9d3a9020076980e5aef94b533a9efbff40c24e3d91cf21876"
   name = "github.com/phR0ze/n"
   packages = [
     ".",
+    "pkg/net",
+    "pkg/net/agent",
+    "pkg/net/mech",
     "pkg/opt",
     "pkg/sys",
   ]
   pruneopts = "NUT"
-  revision = "9213445f2f447853b26c1bf6ef3354a7de23a77d"
-  version = "v2.0.40"
+  revision = "1185f40df4c463f7531728ed1bf1b98fed0a0dc5"
+  version = "v2.0.46"
 
 [[projects]]
   digest = "1:14715f705ff5dfe0ffd6571d7d201dd8e921030f8070321a79380d8ca4ec1a24"
@@ -95,6 +114,17 @@
 
 [[projects]]
   branch = "master"
+  digest = "1:d7b978a787736537d0ad2f84c0e8b75b05c2febef0537198e28edf1cf2768afd"
+  name = "golang.org/x/net"
+  packages = [
+    "html",
+    "html/atom",
+  ]
+  pruneopts = "NUT"
+  revision = "74dc4d7220e7acc4e100824340f3e66577424772"
+
+[[projects]]
+  branch = "master"
   digest = "1:1797af05bdcb4e1bf36b2971de3a9379a9d89211b7f116efdfda6127376d7f64"
   name = "golang.org/x/sys"
   packages = [
@@ -117,6 +147,8 @@
   analyzer-version = 1
   input-imports = [
     "github.com/phR0ze/n",
+    "github.com/phR0ze/n/pkg/net",
+    "github.com/phR0ze/n/pkg/net/mech",
     "github.com/phR0ze/n/pkg/sys",
     "github.com/pkg/errors",
     "github.com/sirupsen/logrus",

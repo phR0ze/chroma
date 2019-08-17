@@ -1,7 +1,7 @@
 NAME = chroma
 ROOT = github.com/phR0ze/$(NAME)
 IMPORT = github.com/phR0ze/$(NAME)/internal/$(NAME)
-VERSION := $(strip $(shell cat VERSION))
+VERSION := $(strip $(shell sed -n 's/version=\(.*\)/\1/p' VERSION))
 GIT_BRANCH := $(strip $(shell git rev-parse --abbrev-ref HEAD 2>/dev/null))
 GIT_COMMIT := $(strip $(shell git rev-parse --short HEAD 2>/dev/null))
 GIT_COMMIT_LONG := $(strip $(shell git rev-parse HEAD 2>/dev/null))

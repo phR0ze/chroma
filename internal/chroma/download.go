@@ -1,16 +1,25 @@
 package chroma
 
 import (
+	"fmt"
+	"os"
 	"path"
+	"strings"
 
+	"github.com/phR0ze/n"
+	"github.com/phR0ze/n/pkg/net"
+	"github.com/phR0ze/n/pkg/net/mech"
 	"github.com/phR0ze/n/pkg/sys"
-	"github.com/pkg/errors"
-
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
+type downloadOpts struct {
+	clean bool // remove previous files before downloading
+}
+
 func (chroma *Chroma) newDownloadCmd() *cobra.Command {
+	opts := &downloadOpts{}
 	cmd := &cobra.Command{
 		Use:     "download",
 		Short:   "Download patches or extensions for chromium",
@@ -41,11 +50,12 @@ func (chroma *Chroma) newDownloadCmd() *cobra.Command {
 				Args:    cobra.MinimumNArgs(1),
 				Run: func(cmd *cobra.Command, distros []string) {
 					chroma.configure()
-					if err := chroma.downloadPatches(distros); err != nil {
+					if err := chroma.downloadPatches(distros, opts); err != nil {
 						chroma.logFatal(err)
 					}
 				},
 			}
+			cmd.Flags().BoolVar(&opts.clean, "clean", false, "Remove local files before downloading")
 			return cmd
 		}(),
 	)
@@ -58,16 +68,84 @@ func (chroma *Chroma) downloadExtension(extName string) {
 }
 
 // Download patches for the given distributions
-func (chroma *Chroma) downloadPatches(distros []string) (err error) {
+func (chroma *Chroma) downloadPatches(distros []string, opts *downloadOpts) (err error) {
 	for _, distro := range distros {
 		patchSetDir := path.Join(chroma.patchesDir, distro)
-		if !sys.Exists(patchSetDir) {
-			err = errors.Errorf("patchset destination directory %s doesn't exist", patchSetDir)
+
+		// Ensure destination directory is clean and ready
+		// -----------------------------------------------------------------------------------------
+		if opts.clean {
+			log.Infof("Removing all files in local patchset dir %s", patchSetDir)
+			if sys.Exists(patchSetDir) {
+				sys.RemoveAll(patchSetDir)
+			}
+		}
+		if _, err = sys.MkdirP(patchSetDir); err != nil {
 			return
 		}
 
+		// Download and process links from the patchset page
+		// -----------------------------------------------------------------------------------------
 		log.Infof("Downloading patchset %s => %s", distro, patchSetDir)
-		
+		agent := mech.New()
+
+		// Handle each distro differently
+		// -----------------------------------------------------------------------------------------
+		switch distro {
+		case "debian":
+
+			// Read in the patch order file, downloading if needed
+			var orderLines *n.StringSlice
+			orderFile := path.Join(patchSetDir, path.Base(gPatchSets[distro]))
+			if !sys.Exists(orderFile) {
+				log.Infof("Downloading patch order file %s", gPatchSets[distro])
+				if _, err = agent.Download(gPatchSets[distro], orderFile); err != nil {
+					return
+				}
+
+				// Read in the order file
+				var data []string
+				if data, err = sys.ReadLines(orderFile); err != nil {
+					return
+				}
+				orderLines = n.S(data)
+
+				// Trim out any empty lines
+				orderLines.DropW(func(x n.O) bool {
+					return n.ExB(x.(string) == "")
+				})
+			}
+
+			// Download each of the patches numbering and naming them according to the order file
+			order := 0
+			for _, plink := range plinks {
+				if strings.Contains(plink, patchSet["tree"]) || strings.Contains(plink, patchSet["blob"]) {
+					uri := net.JoinURL(patchSet["base"], plink)
+					if !n.S(path.Base(uri)).Any("debian", "patches", "..") {
+
+						log.Infof("Downloading patches from directory %s", plink)
+						if !strings.HasSuffix(uri, patchSet["order"]) {
+							var clinks []string
+							if clinks, err = agent.GetLinks(uri); err != nil {
+								return
+							}
+							patchPath := net.JoinURL(patchSet["blob"], path.Base(uri))
+							for _, clink := range clinks {
+								if strings.HasPrefix(clink, patchPath) {
+									i := orderLines.Index(sys.SlicePath(clink, -2, -1))
+									dstName := fmt.Sprintf("%02d-%s", i)
+									fmt.Println(suffix)
+									fmt.Println(i)
+									os.Exit(1)
+								}
+							}
+						} else {
+
+						}
+					}
+				}
+			}
+		}
 	}
 	return
 }
