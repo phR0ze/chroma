@@ -105,6 +105,20 @@ func (chroma *Chroma) downloadPatches(distros []string, opts *downloadOpts) (err
 					return
 				}
 			}
+		case "ungoogled":
+			var order *n.StringSlice
+			if order, err = readOrderFile(distro, patchSetDir); err != nil {
+				return
+			}
+
+			// Download each of the patches numbering and naming them according to the order file
+			for i, entry := range order.SG() {
+				uri := net.JoinURL(net.DirURL(gPatchSets[distro]), entry)
+				dstName := fmt.Sprintf("%02d-%s", i, path.Base(entry))
+				if err = downloadPatch(agent, uri, distro, patchSetDir, dstName); err != nil {
+					return
+				}
+			}
 		}
 	}
 	return
@@ -121,14 +135,14 @@ func downloadPatch(agent *mech.Mech, uri, distro, patchSetDir, dstName string) (
 
 	// Move not used file from used to not used directory
 	case !used && sys.Exists(dstUsedPath):
-		log.Infof("Disabling not used patch %s => %s", dstName, sys.SlicePath(dstUsedPath, -3, -1))
+		log.Infof("Disabling patch %s => %s", dstName, sys.SlicePath(dstUsedPath, -3, -1))
 		if err = sys.Move(dstUsedPath, dstNotUsedPath); err != nil {
 			return
 		}
 
 	// Move used file from not used to used directory
 	case used && sys.Exists(dstNotUsedPath):
-		log.Infof("Enabling used patch %s => %s", dstName, sys.SlicePath(dstUsedPath, -3, -1))
+		log.Infof("Enabling patch %s => %s", dstName, sys.SlicePath(dstUsedPath, -3, -1))
 		if err = sys.Move(dstNotUsedPath, dstUsedPath); err != nil {
 			return
 		}
