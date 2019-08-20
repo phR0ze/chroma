@@ -6,7 +6,7 @@ GIT_BRANCH := $(strip $(shell git rev-parse --abbrev-ref HEAD 2>/dev/null))
 GIT_COMMIT := $(strip $(shell git rev-parse --short HEAD 2>/dev/null))
 GIT_COMMIT_LONG := $(strip $(shell git rev-parse HEAD 2>/dev/null))
 GCFLAGS := -gcflags "all=-trimpath=$(GOPATH)/src" -asmflags "all=-trimpath=$(GOPATH)/src"
-LDFLAGS := -ldflags '-X $(IMPORT).VERSION=$(VERSION) -X $(IMPORT).GITCOMMIT=$(GIT_COMMIT_LONG) -X $(IMPORT).BUILDDATE=$(shell date +%Y.%m.%d)'
+GOFLAGS := -mod=vendor -ldflags '-X $(IMPORT).VERSION=$(VERSION) -X $(IMPORT).GITCOMMIT=$(GIT_COMMIT_LONG) -X $(IMPORT).BUILDDATE=$(shell date +%Y.%m.%d)'
 
 .PHONY: build test
 
@@ -14,15 +14,15 @@ default: $(NAME)
 $(NAME): vendor
 	@echo "Building..."
 	@echo "------------------------------------------------------------------------"
-	go build ${LDFLAGS} -o bin/$(NAME) $(ROOT)/cmd/$(NAME)
-
+	go build ${GOFLAGS} -o bin/$(NAME) $(ROOT)/cmd/$(NAME)
+	
 vendor:
-	dep ensure -v
+	go mod vendor
 
 test:
 	@echo "Testing..."
 	@echo "------------------------------------------------------------------------"
-	go test ${LDFLAGS} $(ROOT)/internal/$(NAME)
+	go test ${GOFLAGS} $(ROOT)/internal/$(NAME)
 
 clean:
 	@rm -rf bin

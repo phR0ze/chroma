@@ -152,17 +152,17 @@ var (
 			"13-perfetto.patch":                                             false, // debian: already covered by debian
 			"14-safe_browsing-disable-incident-reporting.patch":             true,  // iridium: disable safe browsing incident reporting
 			"15-safe_browsing-disable-reporting-of-safebrowsing-over.patch": true,  // iridium: disable safe browsing incident reporting
-			"16-all-add-trk-prefixes-to-possibly-evil-connections.patch":    true,  // iridium: block outgoing calls to any google servers
+			"16-all-add-trk-prefixes-to-possibly-evil-connections.patch":    false, // iridium: block outgoing calls to any google servers
 			"17-disable-crash-reporter.patch":                               true,  // ungoogled: disable crash reporting
-			"18-disable-google-host-detection.patch":                        true,  // ungoogled: disable detecting Google hosts
+			"18-disable-google-host-detection.patch":                        false, // ungoogled: disable detecting Google hosts
 			"19-replace-google-search-engine-with-nosearch.patch":           false, // ungoogled: leaving in the google search engine
 			"20-disable-signin.patch":                                       true,  // ungoogled: disable browser signin
 			"21-disable-translate.patch":                                    true,  // ungoogled: disable browser translate
-			"22-disable-untraceable-urls.patch":                             true,  // ungoogled: disable additional outgoing URLs not caught by "trk" scheme
+			"22-disable-untraceable-urls.patch":                             false, // ungoogled: disable additional outgoing URLs not caught by "trk" scheme
 			"23-disable-profile-avatar-downloading.patch":                   true,  // ungoogled: disable downloading profile avatar
 			"24-disable-gcm.patch":                                          true,  // ungoogled: disable Google Cloud Messaging
 			"25-disable-domain-reliability.patch":                           true,  // ungoogled: disable domain reliability component
-			"26-block-trk-and-subdomains.patch":                             true,  // ungoogled: block other outgoing URLs
+			"26-block-trk-and-subdomains.patch":                             false, // ungoogled: block other outgoing URLs
 			"27-fix-building-without-one-click-signin.patch":                true,  // ungoogled: fix building without one click signin
 			"28-disable-gaia.patch":                                         true,  // ungoogled: ensure can't be activated even without signing in
 			"29-disable-fonts-googleapis-references.patch":                  false, // ungoogled: google fonts are alright, leaving in
