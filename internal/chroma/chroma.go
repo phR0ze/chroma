@@ -82,7 +82,7 @@ var (
 			"32-inspector.patch":                false, // Fixes: not using as getting inspector protocol errors
 			"33-gpu-timeout.patch":              true,  // Fixes: increase GPU timeout from 10sec to 20sec
 			"34-empty-array.patch":              true,  // Fixes: arraysize macro fails for zero length array and add one char
-			"35-safebrowsing.patch":             false, // Fixes: fix signedness error when built with gcc affects safe browsing
+			"35-safebrowsing.patch":             false, // Fixes: not needed as were building with clang
 			"36-sequence-point.patch":           true,  // Fixes: fix undefined order in which expressions are evaluated
 			"37-jumbo-namespace.patch":          true,  // Fixes: jumbo build has trouble with these namespaces
 			"38-template-export.patch":          true,  // Fixes: implementation of template function must be in header to be exported
@@ -140,7 +140,7 @@ var (
 			"01-0001-fix-building-without-safebrowsing.patch":               true,  // inox: Fix building with 'safe_browsing_mode=0' set
 			"02-0003-disable-autofill-download-manager.patch":               true,  // inox: Disables HTML AutoFill data transmission to Google
 			"03-0004-disable-google-url-tracker.patch":                      false, // inox: Disable Google tracking your entered urls, but breaks omnibar search
-			"04-0005-disable-default-extensions.patch":                      true,  // inox: Disable CloudPrint, Feedback, WebStore, InAppPayments
+			"04-0005-disable-default-extensions.patch":                      false, // inox: I want to keep the webstore
 			"05-0007-disable-web-resource-service.patch":                    true,  // inox: Disables downloading dynamic configuration from Google for chromium
 			"06-0009-disable-google-ipv6-probes.patch":                      true,  // inox: Change IPv6 DNS probes to Google over to k.root-servers.net
 			"07-0010-disable-gcm-status-check.patch":                        true,  // inox: Disable Google Cloud-Messaging status probes, GCM allows direct msg to device
@@ -178,7 +178,7 @@ var (
 			"38-chromium-widevine.patch":                                    false, // ungoogled: already covered by debian
 			"39-0006-modify-default-prefs.patch":                            true,  // inox: set sane defaults for preferences
 			"40-0008-restore-classic-ntp.patch":                             true,  // inox: the new NTP (New Tag Page) pulls from Google including tracking identifier
-			"41-0011-add-duckduckgo-search-engine.patch":                    true,  // inox: add duckduckgo search option
+			"41-0011-add-duckduckgo-search-engine.patch":                    true,  // inox: set duckduckgo search option as default for countries with no default
 			"42-0013-disable-missing-key-warning.patch":                     true,  // inox: disable missing google api key warning
 			"43-0016-chromium-sandbox-pie.patch":                            true,  // inox: hardening the sandbox with Position Independent Code(PIE) against ROP exploits
 			"44-0018-disable-first-run-behaviour.patch":                     true,  // inox: disable first run behavior
@@ -214,7 +214,7 @@ var (
 			"74-add-flag-for-search-engine-collection.patch":                false, // ungoogled: skipping
 			"75-add-flag-to-disable-beforeunload.patch":                     false, // ungoogled: skipping
 			"76-add-flag-to-force-punycode-hostnames.patch":                 false, // ungoogled: skipping
-			"77-searx.patch":                                                true,  // ungoogled: adding awesome private search option
+			"77-searx.patch":                                                false, // ungoogled: searx seems to crash and not work
 			"78-disable-webgl-renderer-info.patch":                          true,  // ungoogled: removing webgl data leakage
 			"79-add-flag-to-show-avatar-button.patch":                       false, // ungoogled: skipping
 			"80-add-suggestions-url-field.patch":                            false, // ungoogled: skipping
@@ -226,32 +226,6 @@ var (
 			"86-flag-max-connections-per-host.patch":                        false, // bromite: skipping
 			"87-flag-fingerprinting-canvas-image-data-noise.patch":          false, // bromite: skipping
 		},
-
-		// // Credit to Michael Egger -> patches/inox/LICENSE
-		// // https://github.com/gcarq/inox-patchset
-		// //
-		// // Default Settings
-		// // ------------------------------------------------------------------------
-		// // DefaultCookiesSettings                            CONTENT_SETTING_DEFAULT
-		// // EnableHyperLinkAuditing 	                        false
-		// // CloudPrintSubmitEnabled 	                        false
-		// // NetworkPredictionEnabled 	                        false
-		// // BackgroundModeEnabled 	                          false
-		// // BlockThirdPartyCookies 	                          true
-		// // AlternateErrorPagesEnabled 	                      false
-		// // SearchSuggestEnabled 	                            false
-		// // AutofillEnabled 	                                false
-		// // Send feedback to Google if preferences are reset 	false
-		// // BuiltInDnsClientEnabled                         	false
-		// // SignInPromoUserSkipped 	                          true
-		// // SignInPromoShowOnFirstRunAllowed 	                false
-		// // ShowAppsShortcutInBookmarkBar 	                  false
-		// // ShowBookmarkBar 	                                true
-		// // PromptForDownload 	                              true
-		// // SafeBrowsingEnabled 	                            false
-		// // EnableTranslate 	                                false
-		// // LocalDiscoveryNotificationsEnabled 	              false
-		// },
 	}
 )
 
