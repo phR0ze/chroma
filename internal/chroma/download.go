@@ -2,12 +2,15 @@ package chroma
 
 import (
 	"fmt"
+	"net/url"
 	"path"
 
 	"github.com/phR0ze/n"
+	"github.com/phR0ze/n/pkg/arch/zip"
 	"github.com/phR0ze/n/pkg/net"
 	"github.com/phR0ze/n/pkg/net/mech"
 	"github.com/phR0ze/n/pkg/sys"
+	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -21,21 +24,23 @@ func (chroma *Chroma) newDownloadCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "download",
 		Short:   "Download patches or extensions for chromium",
-		Aliases: []string{"down"},
+		Aliases: []string{"do", "down"},
 		Run: func(cmd *cobra.Command, args []string) {
 			cmd.Help()
 		},
 	}
+	cmd.Flags().BoolVar(&opts.clean, "clean", false, "Remove local files before downloading")
 	cmd.AddCommand(
 		func() *cobra.Command {
 			cmd := &cobra.Command{
-				Use:     "extensions NAME",
+				Use:     "extensions [NAME]",
 				Short:   "Download the chromium extension from the Google Market",
-				Aliases: []string{"ext", "exten", "extension"},
-				Args:    cobra.ExactArgs(1),
+				Aliases: []string{"ex", "ext", "exten", "extension"},
 				Run: func(cmd *cobra.Command, args []string) {
 					chroma.configure()
-					chroma.downloadExtension(args[0])
+					if err := chroma.downloadExtensions(args, opts); err != nil {
+						chroma.logFatal(err)
+					}
 				},
 			}
 			return cmd
@@ -44,16 +49,15 @@ func (chroma *Chroma) newDownloadCmd() *cobra.Command {
 			cmd := &cobra.Command{
 				Use:     "patches DISTROS",
 				Short:   "Download patches for the given distributions for chromium",
-				Aliases: []string{"patch"},
+				Aliases: []string{"pa", "patch"},
 				Args:    cobra.MinimumNArgs(1),
-				Run: func(cmd *cobra.Command, distros []string) {
+				Run: func(cmd *cobra.Command, args []string) {
 					chroma.configure()
-					if err := chroma.downloadPatches(distros, opts); err != nil {
+					if err := chroma.downloadPatches(args, opts); err != nil {
 						chroma.logFatal(err)
 					}
 				},
 			}
-			cmd.Flags().BoolVar(&opts.clean, "clean", false, "Remove local files before downloading")
 			return cmd
 		}(),
 	)
@@ -61,8 +65,72 @@ func (chroma *Chroma) newDownloadCmd() *cobra.Command {
 }
 
 // Download the given extension from the Google Market
-func (chroma *Chroma) downloadExtension(extName string) {
-	log.Fatal(extName)
+func (chroma *Chroma) downloadExtensions(extnames []string, opts *downloadOpts) (err error) {
+	log.Infof("Downloading extensions => %s", chroma.extensionsDir)
+	exts := map[string]string{}
+
+	// Select extensions is given
+	if len(extnames) == 0 {
+		exts = gExtensions
+	} else {
+		for _, name := range extnames {
+			if val, ok := gExtensions[name]; ok {
+				exts[name] = val
+			}
+		}
+	}
+
+	// Ensure destination directory is clean and ready
+	// -----------------------------------------------------------------------------------------
+	if opts.clean {
+		log.Infof("Removing all files in local extensions dir %s", chroma.extensionsDir)
+		if sys.Exists(chroma.extensionsDir) {
+			sys.RemoveAll(chroma.extensionsDir)
+		}
+	}
+	if _, err = sys.MkdirP(chroma.extensionsDir); err != nil {
+		return
+	}
+
+	// Download and process links from the patchset page
+	// -----------------------------------------------------------------------------------------
+	agent := mech.New()
+	for extName, extID := range exts {
+		zipfile := path.Join(chroma.extensionsDir, fmt.Sprintf("%s.crx", extName))
+		if !sys.Exists(zipfile) {
+
+			// Download the extension
+			log.Infof("Downloading extension %s:%s => %s", extName, extID, sys.SlicePath(zipfile, -3, -1))
+			var uri *url.URL
+			if uri, err = url.Parse("https://clients2.google.com/service/update2/crx"); err != nil {
+				err = errors.Wrapf(err, "failed to parse webstore url")
+				return
+			}
+			uri.RawQuery = url.Values{
+				"response":    {"redirect"},
+				"os":          {"linux"},
+				"prodversion": {chroma.chromiumVer},
+				"x":           {fmt.Sprintf("id=%s&installsource=ondemand&uc", extID)},
+			}.Encode()
+			if _, err = agent.Download(uri.String(), zipfile); err != nil {
+				return
+			}
+
+			// Unzip the extension
+			log.Infof("Unzipping the extension %s:%s", extName, extID)
+			tmpDir := path.Join(chroma.extensionsDir, "_tmp")
+			if sys.Exists(tmpDir) {
+				sys.RemoveAll(tmpDir)
+			}
+			zip.ExtractAll(zipfile, tmpDir)
+
+			// Generate the JSON preferences file
+			log.Info("Generating extension preferences file")
+
+		}
+	}
+
+	return
 }
 
 // Download patches for the given distributions
@@ -98,7 +166,7 @@ func (chroma *Chroma) downloadPatches(distros []string, opts *downloadOpts) (err
 			}
 
 			// Download each of the patches numbering and naming them according to the order file
-			for i, entry := range order.SG() {
+			for i, entry := range order.ToStrs() {
 				uri := net.JoinURL(net.DirURL(gPatchSets[distro]), entry)
 				dstName := fmt.Sprintf("%02d-%s", i, path.Base(entry))
 				if err = downloadPatch(agent, uri, distro, patchSetDir, dstName); err != nil {
@@ -112,7 +180,7 @@ func (chroma *Chroma) downloadPatches(distros []string, opts *downloadOpts) (err
 			}
 
 			// Download each of the patches numbering and naming them according to the order file
-			for i, entry := range order.SG() {
+			for i, entry := range order.ToStrs() {
 				uri := net.JoinURL(net.DirURL(gPatchSets[distro]), entry)
 				dstName := fmt.Sprintf("%02d-%s", i, path.Base(entry))
 				if err = downloadPatch(agent, uri, distro, patchSetDir, dstName); err != nil {
