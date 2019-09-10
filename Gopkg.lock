@@ -34,14 +34,6 @@
   version = "v1.0.2"
 
 [[projects]]
-  digest = "1:f9f72e583aaacf1d1ac5d6121abd4afd3c690baa9e14e1d009df26bf831ba347"
-  name = "github.com/mitchellh/go-homedir"
-  packages = ["."]
-  pruneopts = "NUT"
-  revision = "af06845cf3004701891bf4fdb884bfe4920b3727"
-  version = "v1.1.0"
-
-[[projects]]
   digest = "1:c5e6b121ef3d2043505edaf4c80e5a008cec2513dc8804795eb0479d1555bcf7"
   name = "github.com/phR0ze/cast"
   packages = ["."]
@@ -58,20 +50,25 @@
   version = "v1.5.0"
 
 [[projects]]
-  digest = "1:10695f0c8c6cd26375d655b93862dd44f999caf19c9bcdfedf110bd86c444fe0"
+  digest = "1:9bf975933bab78fe97398c367205375f34275a79c7f0302d2f98b8f77fe09fa5"
   name = "github.com/phR0ze/n"
   packages = [
     ".",
     "pkg/arch/zip",
+    "pkg/enc/bin",
+    "pkg/enc/json",
+    "pkg/enc/yaml",
+    "pkg/futil",
     "pkg/net",
     "pkg/net/agent",
     "pkg/net/mech",
     "pkg/opt",
     "pkg/sys",
+    "pkg/time",
   ]
   pruneopts = "NUT"
-  revision = "2472cc9107cb41c31428770873871e42515f470d"
-  version = "v2.0.53"
+  revision = "29de17ebf40206bc092ad3d392f4d879d662e312"
+  version = "v2.0.85"
 
 [[projects]]
   digest = "1:14715f705ff5dfe0ffd6571d7d201dd8e921030f8070321a79380d8ca4ec1a24"
@@ -138,6 +135,7 @@
   input-imports = [
     "github.com/phR0ze/n",
     "github.com/phR0ze/n/pkg/arch/zip",
+    "github.com/phR0ze/n/pkg/futil",
     "github.com/phR0ze/n/pkg/net",
     "github.com/phR0ze/n/pkg/net/mech",
     "github.com/phR0ze/n/pkg/sys",

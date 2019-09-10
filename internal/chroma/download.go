@@ -25,37 +25,64 @@ func (chroma *Chroma) newDownloadCmd() *cobra.Command {
 		Use:     "download",
 		Short:   "Download patches or extensions for chromium",
 		Aliases: []string{"do", "down"},
-		Run: func(cmd *cobra.Command, args []string) {
-			cmd.Help()
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return cmd.Help()
 		},
 	}
 	cmd.Flags().BoolVar(&opts.clean, "clean", false, "Remove local files before downloading")
 	cmd.AddCommand(
 		func() *cobra.Command {
 			cmd := &cobra.Command{
-				Use:     "extensions [NAME]",
-				Short:   "Download the chromium extension from the Google Market",
+				Use:   "extensions [NAME]",
+				Short: "Download the chromium extension from the Google Market",
+				Long: `Download the chromium extensions from the Google Market.
+
+Examples:
+	# Download all extensions
+	chroma down ext
+	
+	# Download the ublock-origin extension
+	chroma down ext ublock-origin
+
+	# Download the https-everywhere and ublock-origin extensions
+	chroma down ext https-everywhere ublock-origin
+`,
 				Aliases: []string{"ex", "ext", "exten", "extension"},
-				Run: func(cmd *cobra.Command, args []string) {
-					chroma.configure()
-					if err := chroma.downloadExtensions(args, opts); err != nil {
-						chroma.logFatal(err)
+				RunE: func(cmd *cobra.Command, args []string) (err error) {
+					if err = chroma.configure(); err != nil {
+						return
 					}
+					if err = chroma.downloadExtensions(args, opts); err != nil {
+						return
+					}
+					return
 				},
 			}
 			return cmd
 		}(),
 		func() *cobra.Command {
 			cmd := &cobra.Command{
-				Use:     "patches DISTROS",
-				Short:   "Download patches for the given distributions for chromium",
+				Use:   "patches [DISTROS]",
+				Short: "Download patches for the given distributions for chromium",
+				Long: `Download patches for the given distributions for chromium.
+
+Examples:
+	# Download all patches
+	chroma down patches
+	
+	# Download the debian and ungoogled patches
+	chroma down patches debian ungoogled
+`,
 				Aliases: []string{"pa", "patch"},
 				Args:    cobra.MinimumNArgs(1),
-				Run: func(cmd *cobra.Command, args []string) {
-					chroma.configure()
-					if err := chroma.downloadPatches(args, opts); err != nil {
-						chroma.logFatal(err)
+				RunE: func(cmd *cobra.Command, args []string) (err error) {
+					if err = chroma.configure(); err != nil {
+						return
 					}
+					if err = chroma.downloadPatches(args, opts); err != nil {
+						return
+					}
+					return
 				},
 			}
 			return cmd
@@ -76,6 +103,9 @@ func (chroma *Chroma) downloadExtensions(extnames []string, opts *downloadOpts) 
 		for _, name := range extnames {
 			if val, ok := gExtensions[name]; ok {
 				exts[name] = val
+			} else {
+				err = errors.Errorf("Error: unsupported extension %s", name)
+				return
 			}
 		}
 	}
@@ -96,11 +126,11 @@ func (chroma *Chroma) downloadExtensions(extnames []string, opts *downloadOpts) 
 	// -----------------------------------------------------------------------------------------
 	agent := mech.New()
 	for extName, extID := range exts {
-		zipfile := path.Join(chroma.extensionsDir, fmt.Sprintf("%s.crx", extName))
-		if !sys.Exists(zipfile) {
+		crxfile := path.Join(chroma.extensionsDir, fmt.Sprintf("%s.crx", extName))
 
-			// Download the extension
-			log.Infof("Downloading extension %s:%s => %s", extName, extID, sys.SlicePath(zipfile, -3, -1))
+		// Download the extension if it doesn't yet exist
+		if !sys.Exists(crxfile) {
+			log.Infof("Downloading extension %s:%s => %s", extName, extID, sys.SlicePath(crxfile, -3, -1))
 			var uri *url.URL
 			if uri, err = url.Parse("https://clients2.google.com/service/update2/crx"); err != nil {
 				err = errors.Wrapf(err, "failed to parse webstore url")
@@ -112,21 +142,54 @@ func (chroma *Chroma) downloadExtensions(extnames []string, opts *downloadOpts) 
 				"prodversion": {chroma.chromiumVer},
 				"x":           {fmt.Sprintf("id=%s&installsource=ondemand&uc", extID)},
 			}.Encode()
-			if _, err = agent.Download(uri.String(), zipfile); err != nil {
+			if _, err = agent.Download(uri.String(), crxfile); err != nil {
 				return
 			}
+		}
+
+		// Generate the JSON preferences file
+		prefPath := path.Join(chroma.extensionsDir, fmt.Sprintf("%s.json", extID))
+		if !sys.Exists(prefPath) {
+			log.Infof("Generating extension preferences file for %s", extName)
 
 			// Unzip the extension
-			log.Infof("Unzipping the extension %s:%s", extName, extID)
 			tmpDir := path.Join(chroma.extensionsDir, "_tmp")
+			log.Infof("Unzipping the extension %s => %s", extName, sys.SlicePath(tmpDir, -3, -1))
 			if sys.Exists(tmpDir) {
 				sys.RemoveAll(tmpDir)
 			}
-			zip.ExtractAll(zipfile, tmpDir)
+			if err = zip.ExtractAll(crxfile, tmpDir); err != nil {
+				return
+			}
 
-			// Generate the JSON preferences file
-			log.Info("Generating extension preferences file")
+			// Read in the extension's manifest.json file
+			var m *n.StringMap
+			jsonfile := path.Join(tmpDir, "manifest.json")
+			if m, err = n.LoadJSONE(jsonfile); err != nil {
+				return
+			}
+			extVer := m.Query("version").A()
+			if extVer == "" {
+				err = errors.Errorf("failed to extract version from ext manifest file")
+				return
+			}
+			log.Infof("Extracted extension version: %s", extVer)
 
+			// Preferences file
+			// https://developer.chrome.com/apps/external_extensions
+			prefs := n.NewStringMap(map[string]interface{}{
+				"external_crx":     path.Join("/usr/share/chromium/extensions", path.Base(crxfile)),
+				"external_version": extVer,
+				// Rather than the local file external_crx we can use the upate url below to download them
+				//"external_update_url": "https://clients2.google.com/service/update2/crx",
+			})
+			log.Infof("Creating preference file %s", sys.SlicePath(prefPath, -3, -1))
+			if err = prefs.WriteJSON(prefPath); err != nil {
+				return
+			}
+			sys.RemoveAll(tmpDir)
+		} else {
+			log.Infof("Extension preferences file for %s already exists", extName)
 		}
 	}
 
@@ -135,6 +198,9 @@ func (chroma *Chroma) downloadExtensions(extnames []string, opts *downloadOpts) 
 
 // Download patches for the given distributions
 func (chroma *Chroma) downloadPatches(distros []string, opts *downloadOpts) (err error) {
+	if len(distros) == 0 {
+		distros = []string{"debian", "ungoogled"}
+	}
 	for _, distro := range distros {
 		patchSetDir := path.Join(chroma.patchesDir, distro)
 		notUsedDir := path.Join(patchSetDir, "not-used")
@@ -204,14 +270,14 @@ func downloadPatch(agent *mech.Mech, uri, distro, patchSetDir, dstName string) (
 	// Move not used file from used to not used directory
 	case !used && sys.Exists(dstUsedPath):
 		log.Infof("Disabling patch %s => %s", dstName, sys.SlicePath(dstUsedPath, -3, -1))
-		if err = sys.Move(dstUsedPath, dstNotUsedPath); err != nil {
+		if _, err = sys.Move(dstUsedPath, dstNotUsedPath); err != nil {
 			return
 		}
 
 	// Move used file from not used to used directory
 	case used && sys.Exists(dstNotUsedPath):
 		log.Infof("Enabling patch %s => %s", dstName, sys.SlicePath(dstUsedPath, -3, -1))
-		if err = sys.Move(dstNotUsedPath, dstUsedPath); err != nil {
+		if _, err = sys.Move(dstNotUsedPath, dstUsedPath); err != nil {
 			return
 		}
 

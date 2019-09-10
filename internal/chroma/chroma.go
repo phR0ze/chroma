@@ -6,6 +6,7 @@ import (
 	"path"
 
 	"github.com/phR0ze/n"
+	"github.com/phR0ze/n/pkg/futil"
 	"github.com/phR0ze/n/pkg/sys"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -22,13 +23,13 @@ var (
 
 	// Supported extensions
 	gExtensions = map[string]string{
-		"https-everywhere":     "gcbommkclmclpchllfjekcdonpmejbdp", // Automatically use HTTPS security where possible
-		"scriptsafe":           "oiigbmnaadbkfbmpbfijlflahbdbdgdf", //
+		// "scriptsafe":          "oiigbmnaadbkfbmpbfijlflahbdbdgdf", //
+		// "umatrix":              "ogfcmafjalglgifnmanfmnieipoejdcf", //
 		"smartup-gestures":     "bgjfekefhjemchdeigphccilhncnjldn", // Better mouse gestures for Chromium
 		"tampermonkey":         "dhdgffkkebhmkfjojejmpbldmpobfkfo", // World's most popular userscript manager
 		"ublock-origin":        "cjpalhdlnbpafiamejdnhcphjbkeiagm", // An efficient ad-blocker for Chromium
 		"ublock-origin-extra":  "pgdnlhfefecpicbbihgmbmffkjpaplco", // Foil early hostile anti-user mechanisms
-		"umatrix":              "ogfcmafjalglgifnmanfmnieipoejdcf", //
+		"markdown-viewer":      "ckkdlimhmcjmikdlpkmbgfkaikojcbjk", // Markdown viewer works well for viewing README.md files
 		"videodownload-helper": "lmjnegcaeklhafolokijcfjliaokphfk", // Video download helper for Chromium
 	}
 
@@ -285,9 +286,16 @@ Examples:
   chroma use
 `,
 			boilerPlate),
-		Run: func(cmd *cobra.Command, args []string) {
-			cmd.Help()
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return cmd.Help()
 		},
+
+		// Turns off RunE triggering help on errors, help is still
+		// printed out for normal case, like missing params or -h
+		SilenceUsage: true,
+
+		// Silence cobra printing out the error as we'll handle it with logrus
+		SilenceErrors: true,
 	}
 
 	chroma.cmd.AddCommand(
@@ -339,18 +347,18 @@ func (chroma *Chroma) configure() (err error) {
 	// ---------------------------------------------------------------------------------------------
 	if !sys.Exists(chroma.pkgbuild) {
 		err = errors.Errorf("chromium PKGBUILD coudn't be found")
-		chroma.logFatal(err)
+		return
 	}
 
 	// Parse out the chromium version from the PKGBUILD
 	exp := `(?m)^pkgver=(.*)$`
-	if chroma.chromiumVer, err = sys.ExtractString(chroma.pkgbuild, exp); err != nil || chroma.chromiumVer == "" {
+	if chroma.chromiumVer, err = futil.ExtractString(chroma.pkgbuild, exp); err != nil || chroma.chromiumVer == "" {
 		err = errors.Errorf("failed to extract the chromium version from the PKGBUILD")
-		chroma.logFatal(err)
+		return
 	}
-	if chroma.chromiumVer, err = sys.ExtractString(chroma.pkgbuild, exp); err != nil || chroma.chromiumVer == "" {
+	if chroma.chromiumVer, err = futil.ExtractString(chroma.pkgbuild, exp); err != nil || chroma.chromiumVer == "" {
 		err = errors.Errorf("failed to extract the chromium version from the VERSION file")
-		chroma.logFatal(err)
+		return
 	}
 
 	// Boiler plate for all commands
@@ -365,19 +373,19 @@ func (chroma *Chroma) configure() (err error) {
 func (chroma *Chroma) validateChromiumVersion() (err error) {
 	chromium := ""
 	exp := `(?m)^pkgver=(.*)$`
-	if chroma.chromiumVer, err = sys.ExtractString(chroma.pkgbuild, exp); err != nil || chroma.chromiumVer == "" {
+	if chroma.chromiumVer, err = futil.ExtractString(chroma.pkgbuild, exp); err != nil || chroma.chromiumVer == "" {
 		err = errors.Errorf("failed to extract the chromium version from the PKGBUILD")
-		chroma.logFatal(err)
+		return
 	}
-	if chromium, err = sys.ExtractString(chroma.pkgbuild, exp); err != nil || chroma.chromiumVer == "" {
+	if chromium, err = futil.ExtractString(chroma.pkgbuild, exp); err != nil || chroma.chromiumVer == "" {
 		err = errors.Errorf("failed to extract the chromium version from the VERSION file")
-		chroma.logFatal(err)
+		return
 	}
 
 	// Validate the versions are the same
 	if chroma.chromiumVer != chromium {
 		err = errors.Errorf("target chromium version in VERSION file is not the same as the PKGBUILD version")
-		chroma.logFatal(err)
+		return
 	}
 	return
 }
