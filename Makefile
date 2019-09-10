@@ -11,14 +11,11 @@ GOFLAGS := -ldflags '-X ${IMPORT}.VERSION=${VERSION} -X ${IMPORT}.GITCOMMIT=${GI
 .PHONY: build test
 
 default: ${NAME}
-${NAME}: vendor
+${NAME}:
 	@echo "Building..."
 	@echo "------------------------------------------------------------------------"
 	go build ${GOFLAGS} -o bin/${NAME} ./cmd/${NAME}
 	
-vendor:
-	dep ensure -v
-
 test:
 	@echo "Testing..."
 	@echo "------------------------------------------------------------------------"
