@@ -67,8 +67,8 @@
     "pkg/time",
   ]
   pruneopts = "NUT"
-  revision = "29de17ebf40206bc092ad3d392f4d879d662e312"
-  version = "v2.0.85"
+  revision = "f3afc52b86162e65f3d5282a29054803776624e5"
+  version = "v1.1.1"
 
 [[projects]]
   digest = "1:14715f705ff5dfe0ffd6571d7d201dd8e921030f8070321a79380d8ca4ec1a24"
