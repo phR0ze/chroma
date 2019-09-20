@@ -7,6 +7,7 @@ import (
 
 	"github.com/phR0ze/n"
 	"github.com/phR0ze/n/pkg/futil"
+	"github.com/phR0ze/n/pkg/opt"
 	"github.com/phR0ze/n/pkg/sys"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -120,19 +121,21 @@ var (
 			"69-unused-functions.patch":         true,  // Warning: remove functions that are unused
 			"70-null-destination.patch":         true,  // Warning: use stack_buf before possible branching
 			"71-int-in-bool-context.patch":      true,  // Warning: fix int in bool context gcc warnings
-			"72-vpx.patch":                      false, // System: arch linux supports VP9 so we don't need to disable it in libvpx
-			"73-icu.patch":                      false, // System: arch linux PKGBUILD has a system lib call out for this already
-			"74-gtk2.patch":                     false, // System: arch linux packages work fine when building against GTK3
-			"75-jpeg.patch":                     false, // System: arch linux PKGBUILD has a system lib call out for this already
-			"76-lcms.patch":                     true,  // System: use system lcms for pdfium
-			"77-nspr.patch":                     true,  // System: build using the system nspr library
-			"78-zlib.patch":                     false, // System: arch PKGBUILD has a system lib call out for this already
-			"79-event.patch":                    false, // System: might be causing libeevnt build failure - build using the system libevent library
-			"80-ffmpeg.patch":                   false, // System: arch linux PKGBUILD has a system lib call out for this already
-			"81-jsoncpp.patch":                  true,  // System: use system jsoncpp
-			"82-openjpeg.patch":                 true,  // System: build system using openjpeg
-			"83-convertutf.patch":               true,  // System: use ICU for UTF8 conversions (eleminates ConvertUTF embedded code copy)
-			"84-icu63.patch":                    false, // System: arch linux has newer icu don't need to maintain compt with 63
+
+			// Disabling all the system libs as its a pain to continually rebuild chromium every time a lib gets updated
+			"72-vpx.patch":        false, // System: arch linux supports VP9 so we don't need to disable it in libvpx
+			"73-icu.patch":        false, // System: arch linux PKGBUILD has a system lib call out for this already
+			"74-gtk2.patch":       false, // System: arch linux packages work fine when building against GTK3
+			"75-jpeg.patch":       false, // System: arch linux PKGBUILD has a system lib call out for this already
+			"76-lcms.patch":       false, // System: use system lcms for pdfium
+			"77-nspr.patch":       false, // System: build using the system nspr library
+			"78-zlib.patch":       false, // System: arch PKGBUILD has a system lib call out for this already
+			"79-event.patch":      false, // System: might be causing libeevnt build failure - build using the system libevent library
+			"80-ffmpeg.patch":     false, // System: arch linux PKGBUILD has a system lib call out for this already
+			"81-jsoncpp.patch":    false, // System: use system jsoncpp
+			"82-openjpeg.patch":   false, // System: build system using openjpeg
+			"83-convertutf.patch": false, // System: use ICU for UTF8 conversions (eleminates ConvertUTF embedded code copy)
+			"84-icu63.patch":      false, // System: arch linux has newer icu don't need to maintain compt with 63
 		},
 
 		// Credit to github.com/Eloston/ungoogled-chromium
@@ -230,12 +233,6 @@ var (
 	}
 )
 
-// Opts allows for passing in complicated arguments
-type Opts struct {
-	Root    string // path where the chromium PKGBUILD will be located
-	Testing bool
-}
-
 // Chroma instance
 type Chroma struct {
 	cmd    *cobra.Command // root cobra command
@@ -252,24 +249,18 @@ type Chroma struct {
 }
 
 // New initializes the CLI with the given options
-func New(o ...*Opts) (chroma *Chroma) {
+func New(opts ...*opt.Opt) (chroma *Chroma) {
 	chroma = &Chroma{}
 
 	// Configure startup options
 	//----------------------------------------------------------------------------------------------
-	opts := &Opts{}
-	if len(o) > 0 {
-		opts = o[0]
-	}
+	chroma.quiet = opt.GetQuietOpt(opts)
+	chroma.debug = opt.GetDebugOpt(opts)
+	chroma.dryrun = opt.GetDryRunOpt(opts)
+	chroma.rootDir = DefaultRootOpt(opts, sys.Pwd())
 
 	n.SetOnEmpty(&VERSION, "999.999.999")
 	var boilerPlate = fmt.Sprintf("Chroma %s [%s (Git %s)]\n", VERSION, BUILDDATE, GITCOMMIT)
-
-	if opts.Root == "" {
-		chroma.rootDir = sys.Pwd()
-	} else {
-		chroma.rootDir = opts.Root
-	}
 
 	// Configure Cobra CLI commands
 	// All subcommands should be defined in a seperate file.
@@ -282,8 +273,11 @@ Examples:
   # Check current versions
   chroma version
 
-  # Check current persisted context
-  chroma use
+  # Download latest patches for debian
+  chroma down patch debian
+
+  # Enable/disable patches according to the internal mapping
+  chroma sort debian
 `,
 			boilerPlate),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -300,6 +294,7 @@ Examples:
 
 	chroma.cmd.AddCommand(
 		chroma.newDownloadCmd(),
+		chroma.newSortCmd(),
 		chroma.newVersionCmd(),
 	)
 

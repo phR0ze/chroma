@@ -20,8 +20,9 @@ func (chroma *Chroma) newVersionCmd() *cobra.Command {
 		Use:     "version",
 		Short:   "Show version information",
 		Aliases: []string{"v", "ver"},
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			chroma.listVersions(os.Stdout)
+			return
 		},
 	}
 	return cmd
